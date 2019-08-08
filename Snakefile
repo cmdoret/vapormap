@@ -2,7 +2,7 @@ from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
 shell.executable("/bin/bash")
 shell.prefix("source $HOME/.bashrc; ")
 
-bucket = 'test_hbv_cancer'
+bucket = 'smk-k8s-demo-bucket'
 GS = GSRemoteProvider()
 rule cat_file:
   input: GS.remote(bucket + "/data/input/centro_hg19.bed")
