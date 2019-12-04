@@ -1,0 +1,40 @@
+$schema: "http://json-schema.org/draft-04/schema#"
+
+description: The config file contains general parameters for the snakemake pipeline
+
+type: object
+
+properties:
+  input_dir:
+    type            : string
+    description     : Path to the directory containing input fastq files, inside the gcloud bucket.
+  output_dir:
+    type            : string
+    description     : Path to the directory that will contain output bam files, inside the gcloud bucket.
+  reference:
+    type            : string
+    description     : Path to the reference genome, inside the gcloud bucket.
+  n_chunks:
+    type            : number
+    maximum         : 999
+    minimum         : 1
+    description     : Number of split fastq to generate from each original fastq.
+  iteralign_params:
+    type            : string
+    description     : Arguments to pass to hicstuff iteralign.
+  remote:
+    properties:
+      provider:
+        type        : string
+        description : Provider serving input files remotely
+      bucket_name:
+        type        : string
+        description : Name of the cloud bucket containing file or absolute path to prepend to SFTP paths
+      cluster_name:
+        type        : string
+        description : Name of the host serving input files if using SFTP/SSHas a provider
+      cluster_size:
+        type        : number
+        minimum     : 1
+        description : Number of node to include in the kubernetes cluster.
+

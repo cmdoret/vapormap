@@ -1,0 +1,9 @@
+#!/bin/bash
+BUCKET_NAME=$1
+
+# Run snakemake through kubernetes and use data on the GS bucket
+snakemake --default-remote-provider GS \
+          --default-remote-prefix "$BUCKET_NAME" \
+          --keep-remote \
+          --use-singularity \
+          --kubernetes
