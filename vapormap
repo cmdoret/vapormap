@@ -1,6 +1,10 @@
 #!/bin/bash
 BUCKET_NAME=$1
 
+if [ -z ${BUCKET_NAME} ]; then
+  echo "Error: You must provide a bucket name"
+  exit 1
+fi
 # Run snakemake through kubernetes and use data on the GS bucket
 snakemake --default-remote-provider GS \
           --default-remote-prefix "$BUCKET_NAME" \

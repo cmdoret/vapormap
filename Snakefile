@@ -17,11 +17,11 @@ N_SPLITS = config['n_chunks']
 split_names = [f'part_{s:03}' for s in range(1, N_SPLITS + 1)] # base names of split files
 
 rule bt2_index:
-  input: GS.remote(str(bucket / GENOME))
   output: GS.remote(str(bucket / TMP / 'genome.rev.2.bt2'))
   params:
+    genome = GS.remote(str(bucket / GENOME)),
     idx = GS.remote(str(bucket / TMP / 'genome'))
-  singularity: "docker://biocontainers/bowtie2:latest"
+  singularity: "docker://koszullab/hicstuff:latest"
   shell: "bowtie2-build {input} {params.idx}"
 
 
@@ -54,7 +54,7 @@ rule split_iter_align_hic:
     index = GS.remote(str(TMP / 'genome')),
     iteralign_presets = config['iteralign_params']
   threads: 12
-  singularity: "docker://cmdoret/hicstuff:latest"
+  singularity: "docker://koszullab/hicstuff:latest"
   shell:
     """
     hicstuff iteralign {params.iteralign_presets} \

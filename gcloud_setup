@@ -4,6 +4,11 @@
 NODES=$1
 CLUSTER_NAME=smk-k8s-vapormap-cluster
 
+if [ -z "$NODES" ]; then
+  echo "You must specify the number of nodes to include in the cluster"
+  exit 1
+fi
+
 # 1: setup kubernetes cluster
 gcloud container clusters create "$CLUSTER_NAME" --num-nodes="$NODES" --scopes storage-rw --zone europe-west1-d
 gcloud container clusters get-credentials "$CLUSTER_NAME"
