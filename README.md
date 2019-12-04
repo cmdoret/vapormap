@@ -2,12 +2,17 @@
 
 Vapormap is a cloud-based alignment pipeline for Hi-C. Each fastq file is split into a number of chunks which are all aligned in parallel on the cloud.
 
-Hi-C reads can be aligned using iterative mapping. All configuration is done through config.yaml.
+Hi-C reads can be aligned using iterative mapping. All configuration is done through `config.yaml`.
 The `gcloud_setup` script takes care of creating the kubernetes cluster, but input fastq files should have been uploaded on a google-cloud bucket whose name must be defined in the config.yaml file. All paths defined in the config are defined inside the gcloud bucket.
+
+### Prerequisites
+
+gcloud sdk should be installed and configured for your account. A bucket with input files should also be online. Python 3.6 is required. 
+
 
 ### Installation
 
-You should have installed and configured the gcloud sdk for your account. You also need python 3.6 You can install python dependencies using:
+You can install python dependencies using:
 
 ```bash
 pip3 install -Ur requirements.txt
@@ -15,7 +20,7 @@ pip3 install -Ur requirements.txt
 
 ### Usage
 
-Setup the cluster using:
+First, edit the file `config.yaml`, entering your cluster and bucket names as well as desired parameters. Setup the cluster using:
 
 ```bash
 ./gcloud_setup "cluster-name"
