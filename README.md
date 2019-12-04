@@ -18,7 +18,7 @@ pip3 install -Ur requirements.txt
 Setup the cluster using:
 
 ```bash
-./gcloud_setup "cluster_name"
+./gcloud_setup "cluster-name"
 ```
 
 Run the alignment using:
@@ -27,3 +27,9 @@ Run the alignment using:
 ./vapormap 'bucket-name'
 ```
 Where `bucket-name` matches an existing bucket on your gcloud account where files have already been uploaded.
+
+Don't forget to delete the cluster once you're finished, using:
+
+```bash
+gcloud container clusters delete "cluster-name"
+```
