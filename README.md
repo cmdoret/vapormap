@@ -1,4 +1,4 @@
-# Vapormap
+# ![Vapormap logo](docs/vapormap_logo.svg) Vapormap
 
 Vapormap is a cloud-based alignment pipeline for Hi-C. Each fastq file is split into a number of chunks which are all aligned in parallel on the cloud.
 
