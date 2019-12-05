@@ -19,7 +19,7 @@ fi
 
 # 1: setup kubernetes cluster
 gcloud container clusters create "$CLUSTER_NAME" --num-nodes="$NODES" --scopes storage-rw --zone europe-west1-d
-gcloud container clusters get-credentials "$CLUSTER_NAME"
+gcloud container clusters get-credentials --zone europe-west1-d "$CLUSTER_NAME"
 
 # 2: log into google storage
 gcloud auth application-default login
