@@ -1,8 +1,11 @@
 #!/bin/bash
-BUCKET_NAME=$1
+
+# Fetch cluster name in config file
+BUCKET_NAME=$(grep 'bucket_name *: *' config.yaml | tr -d " \"\'")
+BUCKET_NAME=${BUCKET_NAME//*bucket_name:/}
 
 if [ -z ${BUCKET_NAME} ]; then
-  echo "Error: You must provide a bucket name"
+  echo "Error: bucket_name not defined in config.yaml"
   exit 1
 fi
 # Run snakemake through kubernetes and use data on the GS bucket
