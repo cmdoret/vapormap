@@ -1,6 +1,10 @@
 # ![Vapormap logo](docs/vapormap_logo.svg) Vapormap
 
-Vapormap is a cloud-based alignment pipeline for Hi-C. Each fastq file is split into a number of chunks which are all aligned in parallel on the cloud.
+Vapormap is a cloud-based alignment pipeline for Hi-C. Each fastq file is split into a number of chunks which are all aligned in parallel on google-cloud using a kubernetes cluster. Jobs are managed using snakemake.
+
+![Vapormap flowchart](docs/vapormap_flowchart.svg)
+
+
 
 Hi-C reads can be aligned using iterative mapping. All configuration is done through `config.yaml`.
 The `gcloud_setup` script takes care of creating the kubernetes cluster, but input fastq files should have been uploaded on a google-cloud bucket whose name must be defined in the config.yaml file. All paths defined in the config are defined inside the gcloud bucket.

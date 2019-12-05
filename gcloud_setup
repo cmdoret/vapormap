@@ -9,7 +9,7 @@ if [ -z "$NODES" ]; then
 fi
 
 # Fetch cluster name in config file
-CLUSTER_NAME=$(grep 'cluster_name *: *' config.yaml | tr -d ' ')
+CLUSTER_NAME=$(grep 'cluster_name *: *' config.yaml | tr -d " \"\'")
 CLUSTER_NAME=${CLUSTER_NAME//*cluster_name:/}
 
 # 1: setup kubernetes cluster
