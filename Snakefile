@@ -53,12 +53,10 @@ rule split_iter_align_hic:
     tmp_dir = lambda w: GS.remote(TMP / "split_reads" / f"{w.fastq}_{w.split}"),
     index = GS.remote(str(TMP / 'genome')),
     iteralign_presets = config['iteralign_params']
-  threads: 12
   singularity: "docker://koszullab/hicstuff:latest"
   shell:
     """
     hicstuff iteralign {params.iteralign_presets} \
-                       -t {threads} \
                        -T {params.tmp_dir} \
                        -g {params.index} \
                        -o {output} \
@@ -73,6 +71,6 @@ rule merge_split_alignments:
       split=split_names
     ))
   output: GS.remote(str(TMP / 'bam' / '{fastq}.bam'))
-  threads: 12
+  threads: 1
   singularity: "docker://biocontainers/samtools:latest"
   shell: "samtools merge -O BAM -@ {threads} {output} {input}"
