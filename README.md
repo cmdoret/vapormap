@@ -12,6 +12,7 @@ The `gcloud_setup` script takes care of creating the kubernetes cluster, but inp
 ### Prerequisites
 
 gcloud sdk should be installed and configured for your account. A bucket with input files should also be online. Python 3.6 is required. 
+[singularity](https://sylabs.io/) also needs to be installed on your system.
 
 
 ### Installation

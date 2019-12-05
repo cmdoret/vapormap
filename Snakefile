@@ -68,10 +68,10 @@ rule split_iter_align_hic:
 # Merge splits from individual mapping jobs into one bam file per library end
 rule merge_split_alignments:
   input:
-    expand(
-      GS.remote(str(TMP / 'split_reads' / '{{fastq}}.{split}.bam')),
+    GS.remote(expand(
+      str(TMP / 'split_reads' / '{{fastq}}.{split}.bam'),
       split=split_names
-    )
+    ))
   output: GS.remote(str(TMP / 'bam' / '{fastq}.bam'))
   threads: 12
   singularity: "docker://biocontainers/samtools:latest"
