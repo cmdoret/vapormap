@@ -15,19 +15,24 @@ GENOME = config['reference']
 N_SPLITS = config['n_chunks']
 # Make splits from fastq files to speed up mapping. [between 1 and 999 per fastq]
 split_names = [f'part_{s:03}' for s in range(1, N_SPLITS + 1)] # base names of split files
+conda: 'envs/hic_processing.yaml'
+
+samples, = glob_wildcards(GS.remote(str(bucket / IN / "{sample}.fq.gz")))
+
+rule all:
+  input: GS.remote(expand(str(bucket / OUT / "{sample}.bam"), sample=samples))
 
 rule bt2_index:
   output: GS.remote(str(bucket / TMP / 'genome.rev.2.bt2'))
   params:
     genome = GS.remote(str(bucket / GENOME)),
     idx = GS.remote(str(bucket / TMP / 'genome'))
-  singularity: "docker://koszullab/hicstuff:latest"
-  shell: "bowtie2-build {input} {params.idx}"
+  shell: "bowtie2-build --threads 1 {params.genome} {params.idx}"
 
 
 rule split_hic_fastq:
-  input: GS.remote(str(bucket / IN / '{fastq}'))
-  output: GS.remote(expand(str(bucket / TMP / 'split_reads' / '{{fastq}}.{split}.fq.gz'), split=split_names))
+  input: GS.remote(str(bucket / IN / '{sample}.fq.gz'))
+  output: GS.remote(expand(str(bucket / TMP / 'split_reads' / '{{sample}}.{split}.fq.gz'), split=split_names))
   params:
     n_splits = N_SPLITS,
     split_dir = GS.remote(str(bucket / TMP / 'split_reads'))
@@ -47,13 +52,12 @@ rule split_hic_fastq:
 rule split_iter_align_hic:
   input:
     index_flag = GS.remote(str(bucket / TMP / 'genome.rev.2.bt2')),
-    fq = GS.remote(str(bucket / TMP / 'split_reads' / '{fastq}.{split}.fq.gz')),
-  output: GS.remote(str(TMP / 'split_reads' / '{fastq}.{split}.bam'))
+    fq = GS.remote(str(bucket / TMP / 'split_reads' / '{sample}.{split}.fq.gz')),
+  output: GS.remote(str(TMP / 'split_reads' / '{sample}.{split}.bam'))
   params:
-    tmp_dir = lambda w: GS.remote(TMP / "split_reads" / f"{w.fastq}_{w.split}"),
+    tmp_dir = lambda w: GS.remote(TMP / "split_reads" / f"{w.sample}_{w.split}"),
     index = GS.remote(str(TMP / 'genome')),
     iteralign_presets = config['iteralign_params']
-  singularity: "docker://koszullab/hicstuff:latest"
   shell:
     """
     hicstuff iteralign {params.iteralign_presets} \
@@ -67,10 +71,10 @@ rule split_iter_align_hic:
 rule merge_split_alignments:
   input:
     GS.remote(expand(
-      str(TMP / 'split_reads' / '{{fastq}}.{split}.bam'),
+      str(TMP / 'split_reads' / '{{sample}}.{split}.bam'),
       split=split_names
     ))
-  output: GS.remote(str(TMP / 'bam' / '{fastq}.bam'))
+  output: GS.remote(str(bucket / OUT / '{sample}.bam'))
   threads: 1
   singularity: "docker://biocontainers/samtools:latest"
   shell: "samtools merge -O BAM -@ {threads} {output} {input}"

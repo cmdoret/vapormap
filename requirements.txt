@@ -1,2 +1,0 @@
-snakemake>=5.7
-kubernetes
