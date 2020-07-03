@@ -1,48 +1,45 @@
 #!/usr/bin/env nextflow
 
-params.str = 'Hello world!'
-fastqs = Channel.fromPath(params.input_dir + "/*.fq*")
-samples = params.input_dir.listfiles('*.fq').collect({it =~ /\(.*\)\.fq.*/})
-split_names = [f'part_{s:03}' for s in range(1, params.n_chunks + 1)]
-conda: 'envs/hic_processing.yaml'
+// Should be the index
+ch_genome = file(params.reference, checkIfExists: true)
+ch_fastqs = Channel.fromPath(params.input_dir + "/*").filter(~/.*(fastq|fq)(.gz)?$/)
+//split_names = [f'part_{s:03}' for s in range(1, params.n_chunks + 1)]
 
-samples, = glob_wildcards(GS.remote(str(bucket / IN / "{sample}.fq.gz")))
-
-process indexGenome{
-        container 'koszullab/hicstuff:latest'
-
-        input:
-        file genome from params.reference
-
-        output:
-        file params.genome + "*bt2" into index
-
-        """
-        bowtie2-build $genome genome_idx
-        """
-}
+//log.info "Genome is: $ch_genome"
+//log.info ch_fastqs.println { "Reads are: $it" }
 
 process splitFastq{
-        
+        tag "split_$sample"
+	container 'cmdoret/seqkit:latest'
+	publishDir "${params.output_dir}/${sample}/"
+
         input:
-        val fastq from fastqs
+        val fastq from ch_fastqs
         
         output:
-        file "split_*.fq.gz" into fq_splits
+        val [$sample]*${params.n_chunks} into ch_samples 
+        file "splits/*.fq.gz" into fq_splits
+        
+        script:
+        sample = fastq.baseName.toString() - ~/.(fastq|fq)(.gz)?$/
+
 
         """
-        seqkit split2 -p {params.n_splits} \
+        seqkit split2 -p ${params.n_chunks} \
                       -w 0 \
                       -f \
-                      -1 $sample \
-                      -O {params.split_dir}
-        printf ${params.str} | split -b 6 - chunk_
+                      -1 $fastq \
+                      -O "splits/"
         """
 }
 
 process mapSplit{
+
+	publishDir "${params.output_dir}/${sample}"
+
         input:
-        val sample from samples
+        file index from ch_genome
+        val sample from ch_samples
         file fq from fq_splits
 
         output:
@@ -60,6 +57,8 @@ process mapSplit{
 }
 
 process mergeBams{
+
+	publishDir "${params.output_dir}"
         input:
         file bam_split from bam_splits
 
@@ -71,4 +70,3 @@ process mergeBams{
         """
 }
 
-result.view { it.trim() }

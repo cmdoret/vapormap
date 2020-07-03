@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Define environment variables to install experimental
 # nextflow with google cloud compatibility
@@ -11,22 +11,15 @@ if [ ! -f './nextflow' ]; then
 fi
 
 # Fetch cluster name in config file
-BUCKET_NAME=$(grep 'bucket_name *: *' config.yaml | tr -d " \"\'")
+BUCKET_NAME=$(grep 'bucket_name *= *' nextflow.config | tr -d " \"\'")
 BUCKET_NAME=${BUCKET_NAME//*bucket_name:/}
 
 if [ -z ${BUCKET_NAME} ]; then
   echo "Error: bucket_name not defined in config.yaml"
   exit 1
 fi
-# Run snakemake through kubernetes and use data on the GS bucket
+# Run through kubernetes and use data on the GS bucket
 # ./nextflow cloud create nf-k8s-vapormap-cluster -c $CLUSTER_SIZE
 # ./nextflow kuberun vapormap.nf -v gs://bucket_name/mount/path
 # ./nextflow cloud shutdown nf-k8s-vapormap-cluster
 ./nextflow run vapormap.nf
-# snakemake --default-remote-provider GS \
-#           --default-remote-prefix "$BUCKET_NAME" \
-#           --keep-remote \
-#           --use-conda \
-#           --kubernetes \
-#           -j 1 \
-#           --local-cores 1
