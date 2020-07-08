@@ -2,7 +2,7 @@
 
 # Define environment variables to install experimental
 # nextflow with google cloud compatibility
-export NXF_VER=19.01.0
+export NXF_VER=20.04.1
 export NXF_MODE=google
 
 # Get nextflow executable if not already present
