@@ -1,23 +1,24 @@
 #!/usr/bin/env nextflow
+/* Mapping reads in parallel, on the cloud. Currently very preliminary:
+ * TODO:
+ *  - Add support for multiple aligner softwares
+ *  - Add pair end support
+*/
 
 // Should be the index
 ref = file(params.reference, checkIfExists: true)
-ch_fastqs = Channel.fromPath(params.input_dir + "/*").filter(~/.*(fastq|fq)(.gz)?$/)
-//split_names = [f'part_{s:03}' for s in range(1, params.n_chunks + 1)]
+fastqs_ch = Channel.fromPath(params.input_dir + "/*").filter(~/.*(fastq|fq)(.gz)?$/)
 
-//log.info "Genome is: $ch_genome"
-//log.info ch_fastqs.println { "Reads are: $it" }
-
+// Split each input fastq into a predefined number of chunks
 process splitFastq{
         tag "split_$sample"
 	container 'cmdoret/seqkit:latest'
-	publishDir "${params.output_dir}/${sample}/"
 
         input:
-        val fastq from ch_fastqs
+        val fastq from fastqs_ch
         
         output:
-        file("${sample}_splits/*.fq.gz") into fq_splits
+        file("fq_splits/${sample}*.fq.gz") into fq_splits
         
         script:
         sample = fastq.baseName.toString() - ~/.(fastq|fq)(.gz)?$/
@@ -26,48 +27,65 @@ process splitFastq{
         """
         seqkit split2 -p ${params.n_chunks} \
                       -w 0 \
+                      -j ${task.cpus} \
                       -f \
                       -1 $fastq \
-                      -O "${sample}_splits/"
+                      -O "fq_splits/"
         """
 }
-
+// Unnest fastq files in the channel
 fq_splits = fq_splits.flatten()
 
+// Align each fastq split independently
 process mapSplit{
 
-	publishDir "${params.output_dir}/${sample}"
+        tag "map $split"
 
         input:
         file(fq) from fq_splits
 
         output:
-        file "${prefix}.bam" into bam_splits
+        path "bam_splits/${split}.bam" into bam_splits
+        path "bam_splits/" into bam_dir_ch
+        val sample into samples_ch
 
         script:
-        prefix = fq.toString() - ~/.f(ast)?q(\.gz)?$/
+        split = fq.toString() - ~/\.f(ast)?q(\.gz)?$/
+        sample = fq.baseName.toString() - ~/\.part_[0-9]+.*$/
 
         if ( params.mode == 'iterative' )
                 """
-            hicstuff iteralign -g $ref $fq -o ${prefix}.bam
+                mkdir -p bam_splits
+                hicstuff iteralign -t ${task.cpus} -g $ref $fq -o bam_splits/${split}.bam
                 """
         else
                 """
-                bowtie2 -x $ref -U $fq -S ${prefix}.split.bam
+                mkdir -p bam_splits
+                bowtie2 -p ${task.cpus} -x $ref -U $fq -S - \
+                | samtools view -O BAM -o bam_splits/${split}.bam
                 """
 }
 
-process mergeBams{
+// Remove duplicated entries to get each individual sample 
+// name and corresponding alignment directory
+bam_dir_ch = bam_dir_ch.unique()
+samples_ch = samples_ch.unique()
 
+// Merge all split alignment files from a sample and publish the
+// result to the output directory
+process mergeBams{
+        tag "merge $sample"
 	publishDir "${params.output_dir}"
         input:
-        file bam_split from bam_splits
+        path bam_dir from bam_dir_ch
+        val sample from samples_ch
 
         output:
-        file "sample.bam" into bam_merged
+        file "${sample}.bam" into bam_merged
 
+        script:
         """
-        samtools merge $bam_merged $sample_*
+        samtools merge -@ ${task.cpus} ${sample}.bam ${bam_dir}/*
         """
 }
 
