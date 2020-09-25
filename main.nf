@@ -12,13 +12,13 @@ fastqs_ch = Channel.fromPath(params.input_dir + "/*").filter(~/.*(fastq|fq)(.gz)
 // Split each input fastq into a predefined number of chunks
 process splitFastq{
         tag "split_$sample"
-	container 'cmdoret/seqkit:latest'
+        container 'cmdoret/seqkit:latest'
 
         input:
         val fastq from fastqs_ch
         
         output:
-        file("fq_splits/${sample}*.fq.gz") into fq_splits
+        tuple sample, file("fq_splits/${sample}*.fq.gz") into fq_splits
         
         script:
         sample = fastq.baseName.toString() - ~/.(fastq|fq)(.gz)?$/
@@ -34,58 +34,52 @@ process splitFastq{
         """
 }
 // Unnest fastq files in the channel
-fq_splits = fq_splits.flatten()
+fq_splits = fq_splits.transpose().view()
 
 // Align each fastq split independently
 process mapSplit{
-
         tag "map $split"
 
         input:
-        file(fq) from fq_splits
+        tuple sample, file(fq) from fq_splits
 
         output:
-        path "bam_splits/${split}.bam" into bam_splits
-        path "bam_splits/" into bam_dir_ch
-        val sample into samples_ch
+        tuple sample, file("${split}.bam")into bam_splits
 
         script:
         split = fq.toString() - ~/\.f(ast)?q(\.gz)?$/
-        sample = fq.baseName.toString() - ~/\.part_[0-9]+.*$/
 
         if ( params.mode == 'iterative' )
                 """
                 mkdir -p bam_splits
-                hicstuff iteralign -t ${task.cpus} -g $ref $fq -o bam_splits/${split}.bam
+                hicstuff iteralign -t ${task.cpus} -g $ref $fq -o ${split}.bam
                 """
         else
                 """
                 mkdir -p bam_splits
                 bowtie2 -p ${task.cpus} -x $ref -U $fq -S - \
-                | samtools view -O BAM -o bam_splits/${split}.bam
+                | samtools sort -n -o ${split}.bam
                 """
 }
 
 // Remove duplicated entries to get each individual sample 
 // name and corresponding alignment directory
-bam_dir_ch = bam_dir_ch.unique()
-samples_ch = samples_ch.unique()
+bam_groups = bam_splits.groupTuple().view()
 
 // Merge all split alignment files from a sample and publish the
 // result to the output directory
 process mergeBams{
         tag "merge $sample"
-	publishDir "${params.output_dir}"
+        publishDir "${params.output_dir}"
         input:
-        path bam_dir from bam_dir_ch
-        val sample from samples_ch
+        tuple sample, file(bam_splits) from bam_groups
 
         output:
         file "${sample}.bam" into bam_merged
 
         script:
         """
-        samtools merge -@ ${task.cpus} ${sample}.bam ${bam_dir}/*
+        samtools merge -n -@ ${task.cpus} ${sample}.bam ${bam_splits}
         """
 }
 
