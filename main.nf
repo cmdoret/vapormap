@@ -12,7 +12,6 @@ fastqs_ch = Channel.fromPath(params.input_dir + "/*").filter(~/.*(fastq|fq)(.gz)
 // Split each input fastq into a predefined number of chunks
 process splitFastq{
         tag "split_$sample"
-        container 'cmdoret/seqkit:latest'
 
         input:
         val fastq from fastqs_ch
@@ -34,7 +33,7 @@ process splitFastq{
         """
 }
 // Unnest fastq files in the channel
-fq_splits = fq_splits.transpose().view()
+fq_splits = fq_splits.transpose()
 
 // Align each fastq split independently
 process mapSplit{
@@ -64,7 +63,7 @@ process mapSplit{
 
 // Remove duplicated entries to get each individual sample 
 // name and corresponding alignment directory
-bam_groups = bam_splits.groupTuple().view()
+bam_groups = bam_splits.groupTuple()
 
 // Merge all split alignment files from a sample and publish the
 // result to the output directory
