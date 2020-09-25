@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# Wrapper script to:
+# 1. Get nextflow.
+# 2. Create a kubernetes cluster on google cloud.
+# 3. Run the pipeline there.
+# 4. Shutdown the cluster.
 
 # Define environment variables to install experimental
 # nextflow with google cloud compatibility
@@ -19,7 +24,6 @@ if [ -z ${BUCKET_NAME} ]; then
   exit 1
 fi
 # Run through kubernetes and use data on the GS bucket
-# ./nextflow cloud create nf-k8s-vapormap-cluster -c $CLUSTER_SIZE
-# ./nextflow kuberun vapormap.nf -v gs://bucket_name/mount/path
-# ./nextflow cloud shutdown nf-k8s-vapormap-cluster
-./nextflow run main.nf
+./nextflow cloud create nf-k8s-vapormap-cluster -c $CLUSTER_SIZE
+./nextflow kuberun vapormap.nf -v gs://bucket_name/mount/path
+./nextflow cloud shutdown nf-k8s-vapormap-cluster

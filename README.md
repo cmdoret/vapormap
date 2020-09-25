@@ -1,45 +1,35 @@
 # ![Vapormap logo](docs/vapormap_logo.svg) Vapormap
 
-Vapormap is a cloud-based alignment pipeline for Hi-C. Each fastq file is split into a number of chunks which are all aligned in parallel on google-cloud using a kubernetes cluster. Jobs are managed using snakemake.
+Vapormap is a cloud-based alignment pipeline for Hi-C. Each fastq file is split into a number of chunks which are all aligned in parallel on aws batch. Jobs are managed using nextflow. The pipeline has 4 profiles:
+* standard: Run the pipeline on the local machine directly.
+* docker: Run the pipeline on the local machine inside a docker container (requires docker).
+* singularity: Run the pipeline on the local machine inside a singularity container (requires singularity).
+* aws: Runs the pipeline on aws batch.
+* pasteur: Profile specific to institut Pasteur's HPC, to run the pipeline via singularity in a SLURM.
 
 ![Vapormap flowchart](docs/vapormap_flowchart.svg)
 
-
-
-Hi-C reads can be aligned using iterative mapping. All configuration is done through `config.yaml`.
-The `gcloud_setup` script takes care of creating the kubernetes cluster, but input fastq files should have been uploaded on a google-cloud bucket whose name must be defined in the config.yaml file. All paths defined in the config are defined inside the gcloud bucket.
+Hi-C reads can be aligned using iterative mapping. All configuration is done through `nextflow.config`. When using the aws profile, you need to set the input path on a s3 bucket (e.g. "s3://dir/input/").
 
 ### Prerequisites
 
-gcloud sdk should be installed and configured for your account. A bucket with input files should also be online. Python 3.6 is required. 
-[singularity](https://sylabs.io/) also needs to be installed on your system.
+sdk should be installed and configured for your account. A bucket with input files should also be online.
 
 
 ### Installation
 
-You can install python dependencies using:
+You can get nextflow with the following command:
 
 ```bash
-pip3 install -Ur requirements.txt
+wget -qO- https://get.nextflow.io | bash
 ```
 
 ### Usage
 
-First, edit the file `config.yaml`, entering your cluster and bucket names as well as desired parameters. Setup the cluster using:
+First, edit the parameters and paths in `nextflow.config`. Then run the pipeline using:
 
 ```bash
-./gcloud_setup "cluster-name"
+./nextflow run main.nf -profile docker
 ```
+Where the profile can be any of {docker,singularity,aws,pasteur}.
 
-Run the alignment using:
-
-```bash
-./vapormap 'bucket-name'
-```
-Where `bucket-name` matches an existing bucket on your gcloud account where files have already been uploaded.
-
-Don't forget to delete the cluster once you're finished, using:
-
-```bash
-gcloud container clusters delete "cluster-name"
-```
